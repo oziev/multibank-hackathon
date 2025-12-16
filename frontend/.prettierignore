@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+pnpm-lock.yaml
+package-lock.json
+
+# Build
+dist
+build
+.next
+out
+
+# Cache
+.turbo
+.cache
+.vite
+
+# Logs
+*.log
+
+# Env
+.env*
+
+# Generated
+components.json

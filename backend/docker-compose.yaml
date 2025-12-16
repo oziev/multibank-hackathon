@@ -1,0 +1,101 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: bank_aggregator_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: bank_aggregator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bank_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: bank_aggregator_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - bank_network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank_aggregator_backend
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/bank_aggregator
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: bank_aggregator
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ""
+      APP_NAME: "Bank Aggregator API"
+      APP_VERSION: "1.0.0"
+      DEBUG: "True"
+      SECRET_KEY: "vtb-hackathon-2025-bank-aggregator-secret-key"
+      ALGORITHM: "HS256"
+      SESSION_EXPIRE_HOURS: 24
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8080,http://192.168.0.104:5173,http://192.168.0.104:5174"
+      OTP_CODE: "123456"
+      OTP_EXPIRE_MINUTES: 10
+      SMTP_HOST: smtp.yandex.ru
+      SMTP_PORT: 587
+      SMTP_USERNAME: bagaudinh@ya.ru
+      SMTP_PASSWORD: hsiklbtnvlhsglad
+      SMTP_FROM_EMAIL: bagaudinh@ya.ru
+      SMTP_FROM_NAME: Bank Aggregator
+      SMTP_ENABLED: True
+      TEAM_CLIENT_ID: "team222"
+      TEAM_CLIENT_SECRET: "Wl1F0L2aVHOPE20rM0DFeqvP9Qr2pgQT"
+      VBANK_BASE_URL: "https://vbank.open.bankingapi.ru"
+      ABANK_BASE_URL: "https://abank.open.bankingapi.ru"
+      SBANK_BASE_URL: "https://sbank.open.bankingapi.ru"
+      BANK_TOKEN_TTL: 82800
+      CONSENT_REQUEST_TTL: 14400
+      BANK_DATA_CACHE_TTL: 14400
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app  # Монтируем весь код для hot reload
+      - /app/__pycache__  # Исключаем кеш Python
+      - /app/.pytest_cache  # Исключаем кеш pytest
+    networks:
+      - bank_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bank_network:
+    driver: bridge
+

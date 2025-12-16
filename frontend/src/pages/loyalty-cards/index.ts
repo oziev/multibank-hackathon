@@ -1,0 +1,2 @@
+export { LoyaltyCardsPage } from './LoyaltyCardsPage'
+
